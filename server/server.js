@@ -25,9 +25,13 @@ const app = express();
 
 /* ─── CORS ─── */
 app.use(cors({
-  origin: "https://tangent-fun.vercel.app",
+  origin: ["https://tangent-fun.vercel.app"],
+  methods: ["GET","POST","PUT","DELETE","PATCH","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
   credentials: true
 }));
+
+app.options("*", cors());
 
 app.use(express.json());
 
