@@ -25,9 +25,8 @@ const app = express();
 
 /* ─── CORS ─── */
 app.use(cors({
-  origin: "*", // baad me frontend URL daal dena
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: "https://tangent-fun.vercel.app",
+  credentials: true
 }));
 
 app.use(express.json());
@@ -53,7 +52,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "https://tangent-fun.vercel.app"
   },
 });
 
