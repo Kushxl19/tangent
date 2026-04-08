@@ -3,8 +3,8 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import AIChatbot      from "./components/AIChatbot";
-import Login          from "./pages/login";
-import Signup         from "./pages/signup";
+import Login          from "./pages/Login";
+import Signup         from "./pages/Signup";
 import Home           from "./pages/Home";
 import Chat           from "./pages/Chat";
 import ProtectedRoute from "./components/ProtectedRoute";
