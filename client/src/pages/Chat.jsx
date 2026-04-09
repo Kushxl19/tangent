@@ -1450,21 +1450,28 @@ export default function TanGentChatUI() {
         const msgs = Array.isArray(r.data) ? r.data : r.data.messages || [];
 
         // ✅ Sender ki public keys cache karo aur decrypt karo
-        const keyCache = {};
-        const decrypted = await Promise.all(msgs.map(async (m) => {
-          const senderId = m.sender?._id || m.sender;
-          if (!keyCache[senderId]) {
-            try {
-              const { data: kd } = await axios.get(
-                `${API}/api/users/public-key/${senderId}`,
-                { headers: authHeader() }
-              );
-              keyCache[senderId] = kd.publicKey;
-            } catch { keyCache[senderId] = null; }
-          }
-          if (!keyCache[senderId]) return m;
-          return { ...m, content: decryptMessage(m.content, keyCache[senderId]) };
-        }));
+        const myId = me?._id;
+const keyCache = {};
+const decrypted = await Promise.all(msgs.map(async (m) => {
+  const senderId   = m.sender?._id   || m.sender;
+  const receiverId = m.receiver?._id || m.receiver;
+
+  // Main sender hoon → receiver ki key chahiye
+  // Main receiver hoon → sender ki key chahiye
+  const otherPersonId = senderId === myId ? receiverId : senderId;
+
+  if (!keyCache[otherPersonId]) {
+    try {
+      const { data: kd } = await axios.get(
+        `${API}/api/users/public-key/${otherPersonId}`,
+        { headers: authHeader() }
+      );
+      keyCache[otherPersonId] = kd.publicKey;
+    } catch { keyCache[otherPersonId] = null; }
+  }
+  if (!keyCache[otherPersonId]) return m;
+  return { ...m, content: decryptMessage(m.content, keyCache[otherPersonId]) };
+}));
 
         setMessages(decrypted);
         setUnreadCounts(u => ({ ...u, [activeFriend._id]: 0 }));
