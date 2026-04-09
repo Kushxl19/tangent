@@ -344,7 +344,7 @@ body, #root { height:100vh; overflow:hidden; }
 .pp-panel {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 120px);
+  height: calc(100dvh - 100px);
 }
 
 .pp-panel-body {
@@ -356,7 +356,7 @@ body, #root { height:100vh; overflow:hidden; }
   position: sticky;
   bottom: 0;
   background: rgba(8,8,28,0.95);
-  backdrop-filter: blur(10px);
+  padding-bottom: 10px;
 }
 .tg-sheet-item {
   display: flex; align-items: center; gap: 13px;
