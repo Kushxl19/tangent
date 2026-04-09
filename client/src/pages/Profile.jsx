@@ -6,7 +6,7 @@ import logo from "../assets/tg-logo.png";
 import Loader from "../components/Loader";
 import NotificationBell from "../components/Notificationbell";
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
