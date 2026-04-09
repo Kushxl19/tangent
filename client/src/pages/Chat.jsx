@@ -640,6 +640,32 @@ body, #root { height:100vh; overflow:hidden; }
 .tg-call-btn.mute   { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); }
 .tg-call-btn:hover  { transform:scale(1.08); }
 
+.tg-app {
+  height: 100dvh; /* mobile fix */
+}
+
+.tg-sidebar,
+.tg-sidebar-body {
+  height: 100%;
+}
+
+.tg-main {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tg-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tg-chat-input {
+  flex-shrink: 0;
+}
+
 /* ══ FRIENDS INLINE VIEW ══ */
 .fi-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .fi-header {
