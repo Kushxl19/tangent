@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 import { io } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:5000"; // ← same as your API base
+const SOCKET_URL =  import.meta.env.VITE_API_URL; // ← same as your API base
 
 let socket = null;
 
