@@ -58,6 +58,18 @@ export const updateMe = async (req, res) => {
   }
 };
 
+export const savePublicKey = async (req, res) => {
+  const { publicKey } = req.body;
+  await User.findByIdAndUpdate(req.user._id, { publicKey });
+  res.json({ success: true });
+};
+
+export const getPublicKey = async (req, res) => {
+  const user = await User.findById(req.params.userId).select("publicKey");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json({ publicKey: user.publicKey });
+};
+
 // ── PUT /api/users/me/password ────────────────────────────────────────────────
 export const updatePassword = async (req, res) => {
   try {

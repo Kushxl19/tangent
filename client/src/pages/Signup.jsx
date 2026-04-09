@@ -3,6 +3,8 @@ import { useState } from "react";
 import logo from "../assets/tg-logo.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import axios from "axios";                          // ✅ E2E Encryption
+import { ensureKeyPair } from "../crypto";          // ✅ E2E Encryption
 
 
 const StarField = () => {
@@ -93,6 +95,14 @@ function Signup() {
 
       // Save user + token
       localStorage.setItem("userInfo", JSON.stringify(data));
+
+      // ✅ E2E Encryption — naye user ke liye key pair generate + server pe save karo
+      const pubKey = ensureKeyPair();
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/users/public-key`,
+        { publicKey: pubKey },
+        { headers: { Authorization: `Bearer ${data.token}` } }
+      );
 
       // Redirect to chat
       window.location.href = "/chat";

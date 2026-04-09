@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
+import { ensureKeyPair } from "../crypto"; // ✅ E2E Encryption
 
 const StarField = () => {
   const stars = Array.from({ length: 70 }, (_, i) => ({
@@ -39,7 +40,7 @@ function Login() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("userInfo"));
     if (user?.token) {
-      navigate("/chat", { replace: true });
+      navigate("/friends", { replace: true });
     }
   }, []);
 
@@ -73,11 +74,18 @@ function Login() {
       // ✅ Save user + token
       localStorage.setItem("userInfo", JSON.stringify(data));
 
+      // ✅ E2E Encryption — key pair generate karke server pe save karo
+      const pubKey = ensureKeyPair();
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/users/public-key`,
+        { publicKey: pubKey },
+        { headers: { Authorization: `Bearer ${data.token}` } }
+      );
+
       // ✅ Redirect to chat
       setPageLoading(true);
-
       setTimeout(() => {
-        navigate("/chat");
+        navigate("/friends");
       }, 1000);
 
     } catch (error) {
@@ -299,6 +307,14 @@ function Login() {
                     );
 
                     localStorage.setItem("userInfo", JSON.stringify(res.data));
+
+                    // ✅ E2E Encryption — Google login pe bhi key register karo
+                    const pubKey = ensureKeyPair();
+                    await axios.put(
+                      `${import.meta.env.VITE_API_URL}/api/users/public-key`,
+                      { publicKey: pubKey },
+                      { headers: { Authorization: `Bearer ${res.data.token}` } }
+                    );
 
                     navigate("/chat", { replace: true });
 

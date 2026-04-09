@@ -9,6 +9,8 @@ import {
   deleteAccount,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { savePublicKey, getPublicKey } from "../controllers/userController.js";
+
 
 const router = express.Router();
 
@@ -31,5 +33,10 @@ router.put("/me/disable",  protect, disableAccount);
 
 // ── DELETE ACCOUNT ────────────────────────────────────────────────────────────
 router.delete("/me",       protect, deleteAccount);
+
+router.put("/public-key", protect, savePublicKey);
+
+router.get("/public-key/:userId", protect, getPublicKey);
+
 
 export default router;

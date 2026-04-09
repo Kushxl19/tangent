@@ -11,6 +11,8 @@ import ReactDOM from "react-dom";
 import MessageBubble from "../components/MessageBubble";
 import ChatThemeSettingsModal from "../components/ChatThemeSettingsModal";
 import { useAppContext } from "../App";
+import { encryptMessage, decryptMessage } from "../crypto";
+
 
 
 const API = import.meta.env.VITE_API_URL;
@@ -1337,25 +1339,35 @@ export default function TanGentChatUI() {
     const socket = connectSocket(me._id);
     socketRef.current = socket;
 
-    socket.on("message received", (newMsg) => {
-      const senderId = newMsg.sender?._id || newMsg.sender;
-      setMessages(prev => {
-        const inConv = senderId === activeFriend?._id || newMsg.receiver === activeFriend?._id;
-        if (inConv) {
-          if (prev.find(m => m._id === newMsg._id)) return prev;
-          return [...prev, newMsg];
-        }
-        return prev;
-      });
-      setActiveFriend(cur => {
-        if (senderId !== cur?._id)
-          setUnreadCounts(u => ({ ...u, [senderId]: (u[senderId] || 0) + 1 }));
-        return cur;
-      });
-      setFriends(prev => prev.map(f =>
-        f._id === senderId ? { ...f, lastMessage: newMsg.content, lastMessageTime: newMsg.createdAt } : f
-      ));
-    });
+    socket.on("message received", async (newMsg) => {
+  const senderId = newMsg.sender?._id || newMsg.sender;
+
+  // ✅ Sender ki public key fetch karo aur decrypt karo
+  try {
+    const { data: kd } = await axios.get(
+      `${API}/api/users/public-key/${senderId}`,
+      { headers: authHeader() }
+    );
+    newMsg = { ...newMsg, content: decryptMessage(newMsg.content, kd.publicKey) };
+  } catch { /* fallback: show as-is */ }
+
+  setMessages(prev => {
+    const inConv = senderId === activeFriend?._id || newMsg.receiver === activeFriend?._id;
+    if (inConv) {
+      if (prev.find(m => m._id === newMsg._id)) return prev;
+      return [...prev, newMsg];
+    }
+    return prev;
+  });
+  setActiveFriend(cur => {
+    if (senderId !== cur?._id)
+      setUnreadCounts(u => ({ ...u, [senderId]: (u[senderId] || 0) + 1 }));
+    return cur;
+  });
+  setFriends(prev => prev.map(f =>
+    f._id === senderId ? { ...f, lastMessage: newMsg.content, lastMessageTime: newMsg.createdAt } : f
+  ));
+});
 
     socket.on("typing", ({ senderId }) => {
       if (senderId === activeFriend?._id) setIsTyping(true);
@@ -1422,15 +1434,35 @@ export default function TanGentChatUI() {
     setMessages([]);
     setIsTyping(false);
     axios.get(`${API}/api/messages/${activeFriend._id}`, { headers: authHeader() })
-      .then(r => {
+      .then(async r => {
         const msgs = Array.isArray(r.data) ? r.data : r.data.messages || [];
-        setMessages(msgs);
+
+        // ✅ Sender ki public keys cache karo aur decrypt karo
+        const keyCache = {};
+        const decrypted = await Promise.all(msgs.map(async (m) => {
+          const senderId = m.sender?._id || m.sender;
+          if (!keyCache[senderId]) {
+            try {
+              const { data: kd } = await axios.get(
+                `${API}/api/users/public-key/${senderId}`,
+                { headers: authHeader() }
+              );
+              keyCache[senderId] = kd.publicKey;
+            } catch { keyCache[senderId] = null; }
+          }
+          if (!keyCache[senderId]) return m;
+          return { ...m, content: decryptMessage(m.content, keyCache[senderId]) };
+        }));
+
+        setMessages(decrypted);
         setUnreadCounts(u => ({ ...u, [activeFriend._id]: 0 }));
         axios.put(`${API}/api/messages/read/${activeFriend._id}`, {}, { headers: authHeader() }).catch(() => { });
       })
       .catch(console.error)
       .finally(() => setMessagesLoading(false));
   }, [activeFriend?._id]);
+
+
 
   /* ── Auto-scroll ── */
   useEffect(() => {
@@ -1485,7 +1517,7 @@ export default function TanGentChatUI() {
     };
     setMessages(prev => [...prev, tempMsg]);
     setInputVal("");
-    setReplyTo(null);  // clear reply after sending
+    setReplyTo(null);
     cancelReply();
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setIAmTyping(false);
@@ -1493,26 +1525,39 @@ export default function TanGentChatUI() {
     setSending(true);
 
     try {
+      // ✅ Receiver ki public key fetch karo
+      const { data: keyData } = await axios.get(
+        `${API}/api/users/public-key/${activeFriend._id}`,
+        { headers: authHeader() }
+      );
+      // ✅ Encrypt karo
+      const encryptedContent = encryptMessage(txt, keyData.publicKey);
+
+      // ✅ Sirf ek baar encrypted content bhejo
       const { data } = await axios.post(
         `${API}/api/messages`,
         {
           receiverId: activeFriend._id,
-          content: txt,
+          content: encryptedContent,
           replyTo: replyTo?._id ?? null,
         },
         { headers: authHeader() }
       );
-      setMessages(prev => prev.map(m => m._id === tempId ? data : m));
+
+      // ✅ UI mein plaintext dikhao (decrypted)
+      setMessages(prev => prev.map(m =>
+        m._id === tempId ? { ...data, content: txt } : m
+      ));
       socketRef.current?.emit("new message", data);
-      setFriends(prev =>
-        prev.map(f =>
-          f._id === activeFriend._id
-            ? { ...f, lastMessage: data.content, lastMessageTime: data.createdAt }
-            : f
-        )
-      );
+      setFriends(prev => prev.map(f =>
+        f._id === activeFriend._id
+          ? { ...f, lastMessage: txt, lastMessageTime: data.createdAt }
+          : f
+      ));
     } catch {
-      setMessages(prev => prev.map(m => m._id === tempId ? { ...m, failed: true, sending: false } : m));
+      setMessages(prev => prev.map(m =>
+        m._id === tempId ? { ...m, failed: true, sending: false } : m
+      ));
     } finally {
       setSending(false);
     }
