@@ -14,7 +14,6 @@ import { useAppContext } from "../App";
 import { encryptMessage, decryptMessage } from "../crypto";
 
 
-
 const API = import.meta.env.VITE_API_URL;
 /* ════════════════════════════════════════════════════════════════
    PRESET AVATARS MAP
@@ -1317,6 +1316,19 @@ export default function TanGentChatUI() {
       .then(r => setMe(r.data))
       .catch(console.error);
   }, [token]);
+
+  useEffect(() => {
+  if (!token || !me?._id) return;
+  import("../crypto").then(({ ensureKeyPair }) => {
+    const pubKey = ensureKeyPair();
+    axios.put(
+      `${API}/api/users/public-key`,
+      { publicKey: pubKey },
+      { headers: authHeader() }
+    ).then(() => console.log("✅ Public key saved:", pubKey))
+     .catch(console.error);
+  });
+}, [me?._id]);
 
   useEffect(() => {
     if (!token) return;
