@@ -1439,47 +1439,55 @@ export default function TanGentChatUI() {
   }, [token]);
 
   /* ── 5. Fetch messages on friend change ── */
-  useEffect(() => {
-    if (!activeFriend?._id || !token) return;
-    localStorage.setItem("tg_last_friend_id", activeFriend._id);
-    setMessagesLoading(true);
-    setMessages([]);
-    setIsTyping(false);
-    axios.get(`${API}/api/messages/${activeFriend._id}`, { headers: authHeader() })
-      .then(async r => {
-        const msgs = Array.isArray(r.data) ? r.data : r.data.messages || [];
+  /* ── 5. Fetch messages on friend change ── */
+useEffect(() => {
+  if (!activeFriend?._id || !token) return;
 
-        // ✅ Sender ki public keys cache karo aur decrypt karo
-        const myId = me?._id;
-        const keyCache = {};
-        const decrypted = await Promise.all(msgs.map(async (m) => {
-          const senderId = m.sender?._id || m.sender;
-          const receiverId = m.receiver?._id || m.receiver;
+  let cancelled = false;
 
-          // Main sender hoon → receiver ki key chahiye
-          // Main receiver hoon → sender ki key chahiye
-          const otherPersonId = senderId === myId ? receiverId : senderId;
+  localStorage.setItem("tg_last_friend_id", activeFriend._id);
+  setMessagesLoading(true);
+  setMessages([]);
+  setIsTyping(false);
 
-          if (!keyCache[otherPersonId]) {
-            try {
-              const { data: kd } = await axios.get(
-                `${API}/api/users/public-key/${otherPersonId}`,
-                { headers: authHeader() }
-              );
-              keyCache[otherPersonId] = kd.publicKey;
-            } catch { keyCache[otherPersonId] = null; }
-          }
-          if (!keyCache[otherPersonId]) return m;
-          return { ...m, content: decryptMessage(m.content, keyCache[otherPersonId]) };
-        }));
+  axios.get(`${API}/api/messages/${activeFriend._id}`, { headers: authHeader() })
+    .then(async r => {
+      if (cancelled) return;
 
-        setMessages(decrypted);
-        setUnreadCounts(u => ({ ...u, [activeFriend._id]: 0 }));
-        axios.put(`${API}/api/messages/read/${activeFriend._id}`, {}, { headers: authHeader() }).catch(() => { });
-      })
-      .catch(console.error)
-      .finally(() => setMessagesLoading(false));
-  }, [activeFriend?._id]);
+      const msgs = Array.isArray(r.data) ? r.data : r.data.messages || [];
+      const myId = me?._id;
+      const keyCache = {};
+
+      const decrypted = await Promise.all(msgs.map(async (m) => {
+        if (cancelled) return m;
+        const senderId      = m.sender?._id   || m.sender;
+        const receiverId    = m.receiver?._id || m.receiver;
+        const otherPersonId = senderId === myId ? receiverId : senderId;
+
+        if (!keyCache[otherPersonId]) {
+          try {
+            const { data: kd } = await axios.get(
+              `${API}/api/users/public-key/${otherPersonId}`,
+              { headers: authHeader() }
+            );
+            keyCache[otherPersonId] = kd.publicKey;
+          } catch { keyCache[otherPersonId] = null; }
+        }
+        if (!keyCache[otherPersonId]) return m;
+        return { ...m, content: decryptMessage(m.content, keyCache[otherPersonId]) };
+      }));
+
+      if (cancelled) return;
+
+      setMessages(decrypted);
+      setUnreadCounts(u => ({ ...u, [activeFriend._id]: 0 }));
+      axios.put(`${API}/api/messages/read/${activeFriend._id}`, {}, { headers: authHeader() }).catch(() => {});
+    })
+    .catch(err => { if (!cancelled) console.error(err); })
+    .finally(() => { if (!cancelled) setMessagesLoading(false); });
+
+  return () => { cancelled = true; };
+}, [activeFriend?._id]);
 
 
 
