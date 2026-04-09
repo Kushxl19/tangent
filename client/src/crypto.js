@@ -24,29 +24,53 @@ function getPrivateKey() {
 
 /** Encrypt a message for a receiver (their publicKey as base64 string) */
 export function encryptMessage(plaintext, receiverPublicKeyB64) {
-  const theirPub = decodeBase64(receiverPublicKeyB64);
-  const myPriv   = getPrivateKey();
-  const nonce    = nacl.randomBytes(nacl.box.nonceLength);
-  const box      = nacl.box(encodeUTF8(plaintext), nonce, theirPub, myPriv);
+  // ✅ Guard — agar receiver ki key nahi hai toh plaintext bhejo
+  if (!receiverPublicKeyB64 || receiverPublicKeyB64.length < 10) {
+    return plaintext;
+  }
 
-  // Pack nonce + ciphertext together as base64
-  const combined = new Uint8Array(nonce.length + box.length);
-  combined.set(nonce);
-  combined.set(box, nonce.length);
-  return encodeBase64(combined);
+  // ✅ Guard — apni private key check karo
+  const myPriv = getPrivateKey();
+  if (!myPriv) return plaintext;
+
+  try {
+    const theirPub = decodeBase64(receiverPublicKeyB64);
+    const nonce    = nacl.randomBytes(nacl.box.nonceLength);
+    const box      = nacl.box(encodeUTF8(plaintext), nonce, theirPub, myPriv);
+
+    // Pack nonce + ciphertext together as base64
+    const combined = new Uint8Array(nonce.length + box.length);
+    combined.set(nonce);
+    combined.set(box, nonce.length);
+    return encodeBase64(combined);
+  } catch (e) {
+    console.warn("encryptMessage failed, sending plaintext:", e.message);
+    return plaintext;
+  }
 }
 
 /** Decrypt a message received from a sender (their publicKey as base64 string) */
 export function decryptMessage(ciphertextB64, senderPublicKeyB64) {
+  // ✅ Guard — agar key nahi hai ya content already plaintext hai
+  if (!senderPublicKeyB64 || senderPublicKeyB64.length < 10) {
+    return ciphertextB64;
+  }
+
+  // ✅ Guard — apni private key check karo
+  const myPriv = getPrivateKey();
+  if (!myPriv) return ciphertextB64;
+
   try {
     const combined  = decodeBase64(ciphertextB64);
     const nonce     = combined.slice(0, nacl.box.nonceLength);
     const box       = combined.slice(nacl.box.nonceLength);
     const theirPub  = decodeBase64(senderPublicKeyB64);
-    const myPriv    = getPrivateKey();
     const decrypted = nacl.box.open(box, nonce, theirPub, myPriv);
-    return decrypted ? decodeUTF8(decrypted) : "🔐 [Unable to decrypt]";
+
+    // ✅ Agar decrypt fail ho toh original content return karo
+    return decrypted ? decodeUTF8(decrypted) : ciphertextB64;
   } catch {
-    return "🔐 [Unable to decrypt]";
+    // ✅ Agar base64 decode fail ho (plaintext message) toh as-is return karo
+    return ciphertextB64;
   }
 }
