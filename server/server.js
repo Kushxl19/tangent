@@ -23,26 +23,25 @@ connectDB();
 
 const app = express();
 
-/* ─── CORS ─── */
-const allowedOrigins = ["https://tangent-fun.vercel.app"];
+/* ─── ✅ FIXED CORS ─── */
+const allowedOrigins = [
+  "https://tangent-fun.vercel.app",
+];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow Postman / mobile apps
 
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("CORS not allowed"));
+    }
+  },
+  credentials: true,
+}));
 
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
+app.options("*", cors()); // 🔥 preflight fix
 
 app.use(express.json());
 
@@ -67,7 +66,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://tangent-fun.vercel.app"
+    origin: "https://tangent-fun.vercel.app",
+    methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
