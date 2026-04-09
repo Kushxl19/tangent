@@ -341,7 +341,23 @@ body, #root { height:100vh; overflow:hidden; }
   color: #c4b5fd; white-space: nowrap; flex-shrink: 0;
 }
 .tg-sheet-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.pp-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 120px);
+}
 
+.pp-panel-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.pp-panel-footer {
+  position: sticky;
+  bottom: 0;
+  background: rgba(8,8,28,0.95);
+  backdrop-filter: blur(10px);
+}
 .tg-sheet-item {
   display: flex; align-items: center; gap: 13px;
   width: 100%; padding: 13px 12px; border-radius: 14px;
