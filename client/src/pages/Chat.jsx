@@ -13,7 +13,7 @@ import ChatThemeSettingsModal from "../components/ChatThemeSettingsModal";
 import { useAppContext } from "../App";
 
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 /* ════════════════════════════════════════════════════════════════
    PRESET AVATARS MAP
 ════════════════════════════════════════════════════════════════ */
