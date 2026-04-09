@@ -1318,17 +1318,17 @@ export default function TanGentChatUI() {
   }, [token]);
 
   useEffect(() => {
-  if (!token || !me?._id) return;
-  import("../crypto").then(({ ensureKeyPair }) => {
-    const pubKey = ensureKeyPair();
-    axios.put(
-      `${API}/api/users/public-key`,
-      { publicKey: pubKey },
-      { headers: authHeader() }
-    ).then(() => console.log("✅ Public key saved:", pubKey))
-     .catch(console.error);
-  });
-}, [me?._id]);
+    if (!token || !me?._id) return;
+    import("../crypto").then(({ ensureKeyPair }) => {
+      const pubKey = ensureKeyPair();
+      axios.put(
+        `${API}/api/users/public-key`,
+        { publicKey: pubKey },
+        { headers: authHeader() }
+      ).then(() => console.log("✅ Public key saved:", pubKey))
+        .catch(console.error);
+    });
+  }, [me?._id]);
 
   useEffect(() => {
     if (!token) return;
@@ -1451,27 +1451,27 @@ export default function TanGentChatUI() {
 
         // ✅ Sender ki public keys cache karo aur decrypt karo
         const myId = me?._id;
-const keyCache = {};
-const decrypted = await Promise.all(msgs.map(async (m) => {
-  const senderId   = m.sender?._id   || m.sender;
-  const receiverId = m.receiver?._id || m.receiver;
+        const keyCache = {};
+        const decrypted = await Promise.all(msgs.map(async (m) => {
+          const senderId = m.sender?._id || m.sender;
+          const receiverId = m.receiver?._id || m.receiver;
 
-  // Main sender hoon → receiver ki key chahiye
-  // Main receiver hoon → sender ki key chahiye
-  const otherPersonId = senderId === myId ? receiverId : senderId;
+          // Main sender hoon → receiver ki key chahiye
+          // Main receiver hoon → sender ki key chahiye
+          const otherPersonId = senderId === myId ? receiverId : senderId;
 
-  if (!keyCache[otherPersonId]) {
-    try {
-      const { data: kd } = await axios.get(
-        `${API}/api/users/public-key/${otherPersonId}`,
-        { headers: authHeader() }
-      );
-      keyCache[otherPersonId] = kd.publicKey;
-    } catch { keyCache[otherPersonId] = null; }
-  }
-  if (!keyCache[otherPersonId]) return m;
-  return { ...m, content: decryptMessage(m.content, keyCache[otherPersonId]) };
-}));
+          if (!keyCache[otherPersonId]) {
+            try {
+              const { data: kd } = await axios.get(
+                `${API}/api/users/public-key/${otherPersonId}`,
+                { headers: authHeader() }
+              );
+              keyCache[otherPersonId] = kd.publicKey;
+            } catch { keyCache[otherPersonId] = null; }
+          }
+          if (!keyCache[otherPersonId]) return m;
+          return { ...m, content: decryptMessage(m.content, keyCache[otherPersonId]) };
+        }));
 
         setMessages(decrypted);
         setUnreadCounts(u => ({ ...u, [activeFriend._id]: 0 }));
@@ -1529,9 +1529,13 @@ const decrypted = await Promise.all(msgs.map(async (m) => {
 
     const tempId = `temp-${Date.now()}`;
     const tempMsg = {
-      _id: tempId, sender: me?._id || "me",
-      receiver: activeFriend._id, content: txt,
-      createdAt: new Date().toISOString(), read: false, sending: true,
+      _id: tempId,
+      sender: { _id: me?._id, name: me?.name, profilePic: me?.profilePic },  // ✅ object form
+      receiver: activeFriend._id,
+      content: txt,
+      createdAt: new Date().toISOString(),
+      read: false,
+      sending: true,
       replyTo: replyTo || null,
     };
     setMessages(prev => [...prev, tempMsg]);
@@ -1565,7 +1569,7 @@ const decrypted = await Promise.all(msgs.map(async (m) => {
 
       // ✅ UI mein plaintext dikhao (decrypted)
       setMessages(prev => prev.map(m =>
-        m._id === tempId ? { ...data, content: txt } : m
+        m._id === tempId ? { ...data, content: txt, sending: false } : m
       ));
       socketRef.current?.emit("new message", data);
       setFriends(prev => prev.map(f =>
