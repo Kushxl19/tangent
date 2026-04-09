@@ -51,7 +51,7 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const SOCKET_URL = import.meta.env.VITE_API_URL;
 
     // initial HTTP fetch so stats show immediately on load
     axios.get(`${SOCKET_URL}/api/stats`)
