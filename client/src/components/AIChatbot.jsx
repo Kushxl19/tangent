@@ -8,7 +8,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 // ── Rate-limit constants (client-side guard — server has its own) ─────────────
 const CLIENT_RATE_LIMIT   = 15;    // max messages in window
