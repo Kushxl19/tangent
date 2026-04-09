@@ -1340,34 +1340,34 @@ export default function TanGentChatUI() {
     socketRef.current = socket;
 
     socket.on("message received", async (newMsg) => {
-  const senderId = newMsg.sender?._id || newMsg.sender;
+      const senderId = newMsg.sender?._id || newMsg.sender;
 
-  // ✅ Sender ki public key fetch karo aur decrypt karo
-  try {
-    const { data: kd } = await axios.get(
-      `${API}/api/users/public-key/${senderId}`,
-      { headers: authHeader() }
-    );
-    newMsg = { ...newMsg, content: decryptMessage(newMsg.content, kd.publicKey) };
-  } catch { /* fallback: show as-is */ }
+      // ✅ Sender ki public key fetch karo aur decrypt karo
+      try {
+        const { data: kd } = await axios.get(
+          `${API}/api/users/public-key/${senderId}`,
+          { headers: authHeader() }
+        );
+        newMsg = { ...newMsg, content: decryptMessage(newMsg.content, kd.publicKey) };
+      } catch { /* fallback: show as-is */ }
 
-  setMessages(prev => {
-    const inConv = senderId === activeFriend?._id || newMsg.receiver === activeFriend?._id;
-    if (inConv) {
-      if (prev.find(m => m._id === newMsg._id)) return prev;
-      return [...prev, newMsg];
-    }
-    return prev;
-  });
-  setActiveFriend(cur => {
-    if (senderId !== cur?._id)
-      setUnreadCounts(u => ({ ...u, [senderId]: (u[senderId] || 0) + 1 }));
-    return cur;
-  });
-  setFriends(prev => prev.map(f =>
-    f._id === senderId ? { ...f, lastMessage: newMsg.content, lastMessageTime: newMsg.createdAt } : f
-  ));
-});
+      setMessages(prev => {
+        const inConv = senderId === activeFriend?._id || newMsg.receiver === activeFriend?._id;
+        if (inConv) {
+          if (prev.find(m => m._id === newMsg._id)) return prev;
+          return [...prev, newMsg];
+        }
+        return prev;
+      });
+      setActiveFriend(cur => {
+        if (senderId !== cur?._id)
+          setUnreadCounts(u => ({ ...u, [senderId]: (u[senderId] || 0) + 1 }));
+        return cur;
+      });
+      setFriends(prev => prev.map(f =>
+        f._id === senderId ? { ...f, lastMessage: newMsg.content, lastMessageTime: newMsg.createdAt } : f
+      ));
+    });
 
     socket.on("typing", ({ senderId }) => {
       if (senderId === activeFriend?._id) setIsTyping(true);
@@ -1554,7 +1554,8 @@ export default function TanGentChatUI() {
           ? { ...f, lastMessage: txt, lastMessageTime: data.createdAt }
           : f
       ));
-    } catch {
+    } catch (err) {
+      console.error("sendMsg error:", err);  // ✅ yeh add karo
       setMessages(prev => prev.map(m =>
         m._id === tempId ? { ...m, failed: true, sending: false } : m
       ));
