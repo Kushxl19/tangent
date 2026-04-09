@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 const PRESET_GRADIENTS = [
   { label: "Purple Dream",  value: "linear-gradient(135deg,#7c5cfc,#5b3ed4)" },
