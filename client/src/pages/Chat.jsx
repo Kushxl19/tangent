@@ -1595,7 +1595,9 @@ export default function TanGentChatUI() {
 
       // ✅ UI mein plaintext dikhao (decrypted)
       setMessages(prev => prev.map(m =>
-        m._id === tempId ? { ...data, content: txt, sending: false } : m
+        m._id === tempId
+          ? { ...data, content: txt, sending: false, replyTo: tempMsg.replyTo ?? data.replyTo }
+          : m
       ));
       socketRef.current?.emit("new message", data);
       setFriends(prev => prev.map(f =>
