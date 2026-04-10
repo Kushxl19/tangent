@@ -1360,7 +1360,16 @@ export default function TanGentChatUI() {
           `${API}/api/users/public-key/${senderId}`,
           { headers: authHeader() }
         );
-        newMsg = { ...newMsg, content: decryptMessage(newMsg.content, kd.publicKey) };
+        newMsg = {
+          ...newMsg,
+          content: decryptMessage(newMsg.content, kd.publicKey),
+          replyTo: newMsg.replyTo
+            ? {
+              ...newMsg.replyTo,
+              content: decryptMessage(newMsg.replyTo.content, kd.publicKey),
+            }
+            : null,
+        };
       } catch { /* fallback: show as-is */ }
 
       setMessages(prev => {
@@ -1440,54 +1449,63 @@ export default function TanGentChatUI() {
 
   /* ── 5. Fetch messages on friend change ── */
   /* ── 5. Fetch messages on friend change ── */
-useEffect(() => {
-  if (!activeFriend?._id || !token) return;
+  useEffect(() => {
+    if (!activeFriend?._id || !token) return;
 
-  let cancelled = false;
+    let cancelled = false;
 
-  localStorage.setItem("tg_last_friend_id", activeFriend._id);
-  setMessagesLoading(true);
-  setMessages([]);
-  setIsTyping(false);
+    localStorage.setItem("tg_last_friend_id", activeFriend._id);
+    setMessagesLoading(true);
+    setMessages([]);
+    setIsTyping(false);
 
-  axios.get(`${API}/api/messages/${activeFriend._id}`, { headers: authHeader() })
-    .then(async r => {
-      if (cancelled) return;
+    axios.get(`${API}/api/messages/${activeFriend._id}`, { headers: authHeader() })
+      .then(async r => {
+        if (cancelled) return;
 
-      const msgs = Array.isArray(r.data) ? r.data : r.data.messages || [];
-      const myId = me?._id;
-      const keyCache = {};
+        const msgs = Array.isArray(r.data) ? r.data : r.data.messages || [];
+        const myId = me?._id;
+        const keyCache = {};
 
-      const decrypted = await Promise.all(msgs.map(async (m) => {
-        if (cancelled) return m;
-        const senderId      = m.sender?._id   || m.sender;
-        const receiverId    = m.receiver?._id || m.receiver;
-        const otherPersonId = senderId === myId ? receiverId : senderId;
+        const decrypted = await Promise.all(msgs.map(async (m) => {
+          if (cancelled) return m;
+          const senderId = m.sender?._id || m.sender;
+          const receiverId = m.receiver?._id || m.receiver;
+          const otherPersonId = senderId === myId ? receiverId : senderId;
 
-        if (!keyCache[otherPersonId]) {
-          try {
-            const { data: kd } = await axios.get(
-              `${API}/api/users/public-key/${otherPersonId}`,
-              { headers: authHeader() }
-            );
-            keyCache[otherPersonId] = kd.publicKey;
-          } catch { keyCache[otherPersonId] = null; }
-        }
-        if (!keyCache[otherPersonId]) return m;
-        return { ...m, content: decryptMessage(m.content, keyCache[otherPersonId]) };
-      }));
+          if (!keyCache[otherPersonId]) {
+            try {
+              const { data: kd } = await axios.get(
+                `${API}/api/users/public-key/${otherPersonId}`,
+                { headers: authHeader() }
+              );
+              keyCache[otherPersonId] = kd.publicKey;
+            } catch { keyCache[otherPersonId] = null; }
+          }
+          if (!keyCache[otherPersonId]) return m;
+          return {
+            ...m,
+            content: decryptMessage(m.content, keyCache[otherPersonId]),
+            replyTo: m.replyTo
+              ? {
+                ...m.replyTo,
+                content: decryptMessage(m.replyTo.content, keyCache[otherPersonId]),
+              }
+              : null,
+          };
+        }));
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      setMessages(decrypted);
-      setUnreadCounts(u => ({ ...u, [activeFriend._id]: 0 }));
-      axios.put(`${API}/api/messages/read/${activeFriend._id}`, {}, { headers: authHeader() }).catch(() => {});
-    })
-    .catch(err => { if (!cancelled) console.error(err); })
-    .finally(() => { if (!cancelled) setMessagesLoading(false); });
+        setMessages(decrypted);
+        setUnreadCounts(u => ({ ...u, [activeFriend._id]: 0 }));
+        axios.put(`${API}/api/messages/read/${activeFriend._id}`, {}, { headers: authHeader() }).catch(() => { });
+      })
+      .catch(err => { if (!cancelled) console.error(err); })
+      .finally(() => { if (!cancelled) setMessagesLoading(false); });
 
-  return () => { cancelled = true; };
-}, [activeFriend?._id]);
+    return () => { cancelled = true; };
+  }, [activeFriend?._id]);
 
 
 
