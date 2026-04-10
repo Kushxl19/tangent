@@ -246,31 +246,6 @@ export default function MessageBubble({
         </div>
 
         {/* Hover quick-actions (Reply & more) */}
-        {hovered && !isDeleted && (
-          <div style={{
-            position: "absolute", top: -6,
-            [isMe ? "left" : "right"]: "calc(100% + 6px)",
-            display: "flex", gap: 4, zIndex: 10,
-            animation: "cmFadeIn .12s ease both",
-          }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); onContextAction?.("reply", msg); }}
-              style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(12,12,34,0.9)", color: "rgba(180,170,240,0.7)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-              title="Reply"
-            >
-              <ReplyIcon />
-            </button>
-            {isMe && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setEditing(true); closeMenu(); }}
-                style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(12,12,34,0.9)", color: "rgba(180,170,240,0.7)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-                title="Edit"
-              >
-                <EditIcon />
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Context menu portal */}
